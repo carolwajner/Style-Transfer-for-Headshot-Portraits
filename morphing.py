@@ -24,11 +24,11 @@ FACE_SEGMENTS: list[tuple[int, int]] = [
 ]
 
 
-def _perpendicular(v: np.ndarray):
+def __perpendicular(v: np.ndarray):
     return np.array([-v[1], v[0]])
 
 
-def _get_lines(landmarks: list[tuple[int, int]]) -> tuple[np.ndarray, np.ndarray]:
+def __get_lines(landmarks: list[tuple[int, int]]) -> tuple[np.ndarray, np.ndarray]:
     P = []
     Q = []
     for idx1, idx2 in FACE_SEGMENTS:
@@ -41,17 +41,17 @@ def beier_neely(src_img: cv2.typing.MatLike, src_landmarks: list, dest_landmarks
     height, width = src_img.shape[:2]
     dest_img = np.zeros_like(src_img)
 
-    P_src, Q_src = _get_lines(src_landmarks)
-    P_dest, Q_dest = _get_lines(dest_landmarks)
+    P_src, Q_src = __get_lines(src_landmarks)
+    P_dest, Q_dest = __get_lines(dest_landmarks)
 
     QP_dest = Q_dest - P_dest
     len_QP_dest_sq = np.sum(QP_dest ** 2, axis=1)
     len_QP_dest = np.sqrt(len_QP_dest_sq)
-    perp_QP_dest = np.array([_perpendicular(v) for v in QP_dest])
+    perp_QP_dest = np.array([__perpendicular(v) for v in QP_dest])
 
     QP_src = Q_src - P_src
     len_QP_src = np.sqrt(np.sum(QP_src ** 2, axis=1))
-    perp_QP_src = np.array([_perpendicular(v) for v in QP_src])
+    perp_QP_src = np.array([__perpendicular(v) for v in QP_src])
 
     # Constantes de Beier e Neely [1992]
     a = 0.001
