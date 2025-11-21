@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 
-def _get_structure(img):
+def _get_structure(img: cv2.typing.MatLike) -> cv2.typing.MatLike:
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     gray = cv2.GaussianBlur(gray, (5, 5), 0)
 

@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 
 
-FACE_SEGMENTS = [
+FACE_SEGMENTS: list[tuple[int, int]] = [
     # Mandíbula
     (0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8),
     (8, 9), (9, 10), (10, 11), (11, 12), (12, 13), (13, 14), (14, 15), (15, 16),
@@ -24,11 +24,11 @@ FACE_SEGMENTS = [
 ]
 
 
-def _perpendicular(v):
+def _perpendicular(v: np.ndarray):
     return np.array([-v[1], v[0]])
 
 
-def _get_lines(landmarks):
+def _get_lines(landmarks: list[tuple[int, int]]) -> tuple[np.ndarray, np.ndarray]:
     P = []
     Q = []
     for idx1, idx2 in FACE_SEGMENTS:
