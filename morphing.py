@@ -102,6 +102,8 @@ def beier_neely(src_img: cv2.typing.MatLike, src_landmarks: list, dest_landmarks
             if 0 <= srcX < width and 0 <= srcY < height:
                 dest_img[y, x] = src_img[srcY, srcX]
             else:
-                dest_img[y, x] = [0, 0, 0]
+                clamp_x = max(0, min(srcX, width - 1))
+                clamp_y = max(0, min(srcY, height - 1))
+                dest_img[y, x] = src_img[clamp_y, clamp_x]
 
     return dest_img
