@@ -1,11 +1,14 @@
 import dlib
 import numpy
 import cv2
+from typing import Tuple, List
 
 import morphing
 
 
-def __detect_landmarks(input: cv2.typing.MatLike, example: cv2.typing.MatLike) -> tuple:
+def __detect_landmarks(
+    input: cv2.typing.MatLike, example: cv2.typing.MatLike
+) -> Tuple[List, List]:
     detector = dlib.get_frontal_face_detector()
     predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
 
@@ -25,7 +28,7 @@ def __detect_landmarks(input: cv2.typing.MatLike, example: cv2.typing.MatLike) -
 
 
 def __affine_transform(
-    from_points: list[tuple], to_points: list[tuple]
+    from_points: List[Tuple], to_points: List[Tuple]
 ) -> cv2.typing.MatLike:
     # indexes of eyes (36 and 45) mouth (51)
     KEY_INDEXES = [36, 45, 51]
@@ -92,7 +95,9 @@ def __apply_adjustment(
     return final_img
 
 
-def dense_morph(input, example) -> cv2.typing.MatLike:
+def dense_morph(
+    input: cv2.typing.MatLike, example: cv2.typing.MatLike
+) -> cv2.typing.MatLike:
     # Detect 68 landmarks
     points_input, points_example = __detect_landmarks(input, example)
 
