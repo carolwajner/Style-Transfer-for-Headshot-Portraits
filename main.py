@@ -10,7 +10,7 @@ def main(arg1: str, arg2: str):
 
         output = dense_correspondence.dense_morph(input_img, example_img)
 
-        utils.save_image(output, "data/output2.jpg")
+        utils.save_image(output, "data/output.jpg")
 
     except Exception as e:
         import traceback
