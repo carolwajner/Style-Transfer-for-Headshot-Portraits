@@ -6,7 +6,7 @@ from typing import Tuple, List
 import morphing
 
 
-def __detect_landmarks(
+def detect_landmarks(
     input: cv2.typing.MatLike, example: cv2.typing.MatLike
 ) -> Tuple[List, List]:
     detector = dlib.get_frontal_face_detector()
@@ -99,7 +99,7 @@ def dense_morph(
     input: cv2.typing.MatLike, example: cv2.typing.MatLike
 ) -> cv2.typing.MatLike:
     # Detect 68 landmarks
-    points_input, points_example = __detect_landmarks(input, example)
+    points_input, points_example = detect_landmarks(input, example)
 
     # Align eyes and mouth using affine transform
     affine_matrix = __affine_transform(points_example, points_input)
@@ -112,7 +112,7 @@ def dense_morph(
     )
 
     # Beier-Neely morphing
-    points_aligned_example, _ = __detect_landmarks(aligned_example, input)
+    points_aligned_example, _ = detect_landmarks(aligned_example, input)
     morphed_output = morphing.beier_neely(
         aligned_example, points_aligned_example, points_input
     )

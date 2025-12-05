@@ -4,7 +4,7 @@ from typing import List, Tuple
 
 import utils
 
-def create_laplacian_stacks(
+def __create_laplacian_stacks(
     image: cv2.typing.MatLike, n: int
 ) -> Tuple[List[cv2.typing.MatLike], cv2.typing.MatLike]:
     laplacian_stack = []
@@ -29,7 +29,7 @@ def create_laplacian_stacks(
     return laplacian_stack, residual
 
 
-def compute_local_energy(
+def __compute_local_energy(
     laplacian_stack: List[cv2.typing.MatLike],
 ) -> List[cv2.typing.MatLike]:
 
@@ -51,7 +51,7 @@ def compute_local_energy(
     return energy_stack
 
 
-def _compute_robust_gain(
+def __compute_robust_gain(
     energy_in: cv2.typing.MatLike, energy_ex: cv2.typing.MatLike, level: int
 ) -> cv2.typing.MatLike:
 
@@ -74,7 +74,7 @@ def _compute_robust_gain(
     return robust_gain
 
 
-def transfer_style(
+def __transfer_style(
     input_stack: list[cv2.typing.MatLike],
     energy_in: list[cv2.typing.MatLike],
     energy_ex: list[cv2.typing.MatLike],
@@ -83,7 +83,7 @@ def transfer_style(
     output_stack = []
 
     for level, layer_in in enumerate(input_stack):
-        gain_map = _compute_robust_gain(energy_in[level], energy_ex[level], level)
+        gain_map = __compute_robust_gain(energy_in[level], energy_ex[level], level)
 
         new_layer = layer_in * gain_map
         output_stack.append(new_layer)
@@ -91,7 +91,7 @@ def transfer_style(
     return output_stack
 
 
-def reconstruct_image(
+def __reconstruct_image(
     laplacian_stack: list[cv2.typing.MatLike], residual: cv2.typing.MatLike
 ) -> cv2.typing.MatLike:
 
@@ -104,7 +104,8 @@ def reconstruct_image(
 
     return final_image
 
-def apply_color_transfer(
+
+def __apply_color_transfer(
     final_luminance: cv2.typing.MatLike,
     input_color_img: cv2.typing.MatLike
 ) -> cv2.typing.MatLike:
@@ -114,7 +115,6 @@ def apply_color_transfer(
 
     lab_example = cv2.cvtColor(input_resized, cv2.COLOR_BGR2LAB)
 
-    # l_in, a_in, b_in = cv2.split(lab_input)
     _, a_ex, b_ex = cv2.split(lab_example)
 
     if final_luminance.dtype != numpy.uint8:
@@ -145,23 +145,23 @@ def apply_local_contrast_and_blend(
     )
 
     # pilhas laplacianas
-    stacks_input, _ = create_laplacian_stacks(input_gray, stack_levels)
-    stacks_output, residual_output = create_laplacian_stacks(example_gray, stack_levels)
+    stacks_input, _ = __create_laplacian_stacks(input_gray, stack_levels)
+    stacks_output, residual_output = __create_laplacian_stacks(example_gray, stack_levels)
 
     # energia local
-    energy_input = compute_local_energy(stacks_input)
-    energy_output = compute_local_energy(stacks_output)
+    energy_input = __compute_local_energy(stacks_input)
+    energy_output = __compute_local_energy(stacks_output)
 
     # mapas de calor
-    new_stack = transfer_style(stacks_input, energy_input, energy_output)
+    new_stack = __transfer_style(stacks_input, energy_input, energy_output)
 
     # reconstrução do res do zuck pra iluminação base
-    final_result_gray = reconstruct_image(new_stack, residual_output)
+    final_result_gray = __reconstruct_image(new_stack, residual_output)
     gray_uint8 = (final_result_gray * 255).clip(0, 255).astype(numpy.uint8)
     utils.save_image(gray_uint8, "data/final_result_gray.jpg")
 
     # cor lab do zuck deformado (output)
-    final_result_color = apply_color_transfer(
+    final_result_color = __apply_color_transfer(
         final_result_gray, morphed_img
     )
 
