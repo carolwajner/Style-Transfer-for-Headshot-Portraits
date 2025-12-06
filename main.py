@@ -2,7 +2,6 @@ import sys
 import utils
 import dense_correspondence
 import local_contrast_transfer
-import postrocessing
 import background
 
 
@@ -29,9 +28,6 @@ def main(arg1: str, arg2: str):
         )
 
         original_landmarks, example_landmarks = dense_correspondence.detect_landmarks(final_blended, example_img)
-
-        #final_blended = postrocessing.transfer_eye_highlights(final_blended, example_img,  original_landmarks, example_landmarks)
-
         final_blended = background.replace_background(final_blended, example_img,  original_landmarks, example_landmarks )
 
         # res finais

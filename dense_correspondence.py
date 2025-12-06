@@ -6,9 +6,102 @@ from typing import Tuple, List
 import morphing
 
 
+def __add_synthetic_forehead(points: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+    
+    points_np = numpy.array(points, dtype=numpy.int32)
+    
+    nose_bridge = points_np[27] 
+    chin = points_np[8]
+    
+    face_height = numpy.linalg.norm(chin - nose_bridge)
+    new_points = []
+    steps = 12 
+    
+    for i in range(steps + 1):
+        t = i / steps
+        current_angle = numpy.deg2rad(180 - (t * 180))
+        
+        radius = face_height * 0.5
+        
+        dx = radius * numpy.cos(current_angle)
+        dy = -radius * numpy.sin(current_angle)
+        
+        x = int(nose_bridge[0] + dx)
+        y = int(nose_bridge[1] + dy)
+        new_points.append((x, y))
+        
+    return points + new_points
+
+
+def __auto_detect_hairline(
+    img: cv2.typing.MatLike, 
+    points: List[Tuple[int, int]]
+) -> List[Tuple[int, int]]:
+    
+    points_np = numpy.array(points, dtype=numpy.int32)
+    height, width = img.shape[:2]
+    hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    nose_bridge = points[27]
+    
+    forehead_indices = range(68, len(points))
+
+    for i in forehead_indices:
+        start_x, start_y = points[i]
+        
+        dx = start_x - nose_bridge[0]
+        dy = start_y - nose_bridge[1]
+        
+        length = numpy.sqrt(dx*dx + dy*dy)
+        if length == 0: continue
+        dir_x, dir_y = dx/length, dy/length
+        
+        ref_sample = hsv_img[max(0, start_y-2):min(height, start_y+3), 
+                             max(0, start_x-2):min(width, start_x+3)]
+        if ref_sample.size == 0: continue
+        ref_color = numpy.mean(ref_sample, axis=(0,1))
+        
+        current_x, current_y = float(start_x), float(start_y)
+        
+        max_dist = length * 2.0 
+        traveled = 0
+        hit_hair = False
+        
+        while traveled < max_dist:
+            current_x += dir_x
+            current_y += dir_y
+            traveled += 1
+            
+            ix, iy = int(current_x), int(current_y)
+            if ix < 0 or ix >= width or iy < 0 or iy >= height:
+                break
+            
+            pixel_color = hsv_img[iy, ix]
+            
+            diff_h = abs(float(pixel_color[0]) - float(ref_color[0]))
+            if diff_h > 90: diff_h = 180 - diff_h
+            diff_s = abs(float(pixel_color[1]) - float(ref_color[1]))
+            diff_v = abs(float(pixel_color[2]) - float(ref_color[2]))
+            
+            total_diff = (diff_h * 2) + (diff_s * 0.5) + (diff_v * 1.0)
+            
+            if total_diff > 40: 
+                hit_hair = True
+                break
+        
+        if hit_hair:
+            final_x = current_x - (dir_x * 5)
+            final_y = current_y - (dir_y * 5)
+            points_np[i] = (int(final_x), int(final_y))
+        else:
+            points_np[i] = (int(current_x), int(current_y))
+
+    return [(int(p[0]), int(p[1])) for p in points_np]
+
+
 def detect_landmarks(
     input: cv2.typing.MatLike, example: cv2.typing.MatLike
 ) -> Tuple[List, List]:
+    
     detector = dlib.get_frontal_face_detector()
     predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
 
@@ -23,6 +116,12 @@ def detect_landmarks(
 
     points1 = [(landmarks1.part(i).x, landmarks1.part(i).y) for i in range(68)]
     points2 = [(landmarks2.part(i).x, landmarks2.part(i).y) for i in range(68)]
+
+    points1 = __add_synthetic_forehead(points1)
+    points2 = __add_synthetic_forehead(points2)
+
+    points1 = __auto_detect_hairline(input, points1)
+    points2 = __auto_detect_hairline(example, points2)
 
     return points1, points2
 
