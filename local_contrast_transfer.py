@@ -2,15 +2,13 @@ import numpy
 import cv2
 from typing import List, Tuple
 
-import utils
-
 def __create_laplacian_stacks(
     image: cv2.typing.MatLike, n: int
 ) -> Tuple[List[cv2.typing.MatLike], cv2.typing.MatLike]:
     laplacian_stack = []
 
     image = image.astype(numpy.float32)
-    sigma = 1.5
+    sigma = 2
 
     for i in range(n):
         if i == 0:
@@ -128,18 +126,48 @@ def __apply_color_transfer(
 
     return result_rgb
 
+def __extend_morphed_colors(
+    morphed_img: cv2.typing.MatLike
+) -> cv2.typing.MatLike:
+
+    lab_morph = cv2.cvtColor(morphed_img, cv2.COLOR_BGR2LAB)
+    a = lab_morph[:,:,1].astype(float)
+    b = lab_morph[:,:,2].astype(float)
+
+    saturation_dist = numpy.sqrt((a - 128.0)**2 + (b - 128.0)**2)
+    
+    gray_mask = (saturation_dist < 13).astype(numpy.uint8) * 255
+    
+    gray_mask = cv2.dilate(gray_mask, None, iterations=2)
+    
+    extended_colors = cv2.inpaint(morphed_img, gray_mask, 5, cv2.INPAINT_TELEA)
+    
+    return extended_colors
+
 
 def apply_local_contrast_and_blend(
     input_img: cv2.typing.MatLike,
     morphed_img: cv2.typing.MatLike,
     input_img_color: cv2.typing.MatLike,
+    segmentation_mask: cv2.typing.MatLike,
+    clean_background: cv2.typing.MatLike, 
     stack_levels: int = 7,
-) -> Tuple[cv2.typing.MatLike, cv2.typing.MatLike]:
+) -> cv2.typing.MatLike:
+
+    h, w = input_img.shape[:2]
+
+    mask_float = segmentation_mask.astype(numpy.float32) / 255.0
+    mask_float = cv2.GaussianBlur(mask_float, (3, 3), 0)
+    mask_3ch = cv2.merge([mask_float, mask_float, mask_float])
+
+    bg_ex = cv2.resize(clean_background, (w, h)).astype(numpy.float32) / 255.0
+
+    input_rgb_float = input_img_color.astype(numpy.float32) / 255.0
+    
+    input_composited = (input_rgb_float * mask_3ch) + (bg_ex * (1.0 - mask_3ch))
 
     # tons de cinza
-    input_gray = (
-        cv2.cvtColor(input_img, cv2.COLOR_BGR2GRAY).astype(numpy.float32) / 255.0
-    )
+    input_gray = cv2.cvtColor(input_composited.astype(numpy.float32), cv2.COLOR_BGR2GRAY)
     example_gray = (
         cv2.cvtColor(morphed_img, cv2.COLOR_BGR2GRAY).astype(numpy.float32) / 255.0
     )
@@ -155,29 +183,19 @@ def apply_local_contrast_and_blend(
     # mapas de calor
     new_stack = __transfer_style(stacks_input, energy_input, energy_output)
 
-    # reconstrução do res do zuck pra iluminação base
     final_result_gray = __reconstruct_image(new_stack, residual_output)
-    gray_uint8 = (final_result_gray * 255).clip(0, 255).astype(numpy.uint8)
-    utils.save_image(gray_uint8, "data/final_result_gray.jpg")
 
-    # cor lab do zuck deformado (output)
+    # colorir partes não usadas no morph
+    extended_color_source = __extend_morphed_colors(morphed_img)
+    
+    # reconstrução do res do zuck pra iluminação base
     final_result_color = __apply_color_transfer(
-        final_result_gray, morphed_img
+        final_result_gray, extended_color_source
     )
 
-    # tentativa FALHA de arrumar a cor da orelha
-    h, w = final_result_color.shape[:2]
-    input_resized = cv2.resize(input_img_color, (w, h))
+    # remoção do fundo
+    final_result_float = final_result_color.astype(numpy.float32) / 255.0
+    
+    final_blended = final_result_float * mask_3ch
 
-    mask = numpy.zeros((h, w), dtype=numpy.float32)
-    center_x, center_y = w // 2, h // 2
-    cv2.circle(mask, (center_x, center_y), int(min(h, w) * 0.45), 1.0, -1)
-    mask = cv2.GaussianBlur(mask, (0, 0), sigmaX=50, sigmaY=50)
-    mask_3ch = cv2.merge([mask, mask, mask])
-
-    final_blended = (
-        final_result_color.astype(float) * mask_3ch
-        + input_resized.astype(float) * (1.0 - mask_3ch)
-    ).astype(numpy.uint8)
-
-    return final_blended, final_result_color
+    return (final_blended * 255).clip(0, 255).astype(numpy.uint8)
