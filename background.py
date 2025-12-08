@@ -23,9 +23,7 @@ def inpainting_background_extraction(
     subject_mask: cv2.typing.MatLike
 ) -> cv2.typing.MatLike:
 
-    dilated_mask = cv2.dilate(subject_mask, None, iterations=3)
-
-    clean_bg = cv2.inpaint(img, dilated_mask, 5, cv2.INPAINT_TELEA)
+    clean_bg = cv2.inpaint(img, subject_mask, 5, cv2.INPAINT_TELEA)
     return clean_bg
 
 

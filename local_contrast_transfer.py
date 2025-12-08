@@ -152,12 +152,15 @@ def apply_local_contrast_and_blend(
     segmentation_mask: cv2.typing.MatLike,
     clean_background: cv2.typing.MatLike, 
     stack_levels: int = 7,
+    blur_radius: int = 21, # <--- 1. NEW PARAMETER (Must be an odd number)
 ) -> cv2.typing.MatLike:
 
     h, w = input_img.shape[:2]
 
     mask_float = segmentation_mask.astype(numpy.float32) / 255.0
-    mask_float = cv2.GaussianBlur(mask_float, (3, 3), 0)
+    
+    mask_float = cv2.GaussianBlur(mask_float, (blur_radius, blur_radius), 0)
+    
     mask_3ch = cv2.merge([mask_float, mask_float, mask_float])
 
     bg_ex = cv2.resize(clean_background, (w, h)).astype(numpy.float32) / 255.0
@@ -196,6 +199,6 @@ def apply_local_contrast_and_blend(
     # remoção do fundo
     final_result_float = final_result_color.astype(numpy.float32) / 255.0
     
-    final_blended = final_result_float * mask_3ch
+    final_blended = (final_result_float * mask_3ch) + (bg_ex * (1.0 - mask_3ch))
 
     return (final_blended * 255).clip(0, 255).astype(numpy.uint8)

@@ -34,7 +34,7 @@ def main(arg1: str, arg2: str):
             mask=mask_in
         )
 
-        utils.save_image(final_result, "data/final_result_blended.jpg")
+        utils.save_image(final_result, "results/final_result_blended.jpg")
 
     except Exception as e:
         import traceback
