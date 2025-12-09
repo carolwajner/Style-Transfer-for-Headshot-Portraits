@@ -197,10 +197,10 @@ def __apply_adjustment(
 def dense_morph(
     input: cv2.typing.MatLike, example: cv2.typing.MatLike
 ) -> cv2.typing.MatLike:
-    # Detect 68 landmarks
+    # detectar landmarks
     points_input, points_example = detect_landmarks(input, example)
 
-    # Align eyes and mouth using affine transform
+    # alinhar olhos e boca com transformação afim
     affine_matrix = __affine_transform(points_example, points_input)
 
     aligned_example = cv2.warpAffine(
@@ -210,13 +210,13 @@ def dense_morph(
         borderMode=cv2.BORDER_REPLICATE,
     )
 
-    # Beier-Neely morphing
+    # beier-neely
     points_aligned_example, _ = detect_landmarks(aligned_example, input)
     morphed_output = morphing.beier_neely(
         aligned_example, points_aligned_example, points_input
     )
 
-    # SIFT flow adjustment
+    # farnerback
     final_output = __apply_adjustment(input, morphed_output)
 
     return final_output
